@@ -6,7 +6,14 @@ menuItem -label "Gaussifier Command" -command ("createDialogWindow");
 
 global proc loadMesh()
 {
-	return;
+	string $objects[] = `ls -sl`;
+	$mesh = $objects[0];
+	python("import sys; sys.path.append('D:\Upenn\CGGT\CIS660\Gaussifier\Gaussifier')");
+	if ($mesh != "") {
+		python("import GaussifierCmd; GaussifierCmd.doIt(\"" + $mesh + "\")");
+	}else {
+		print "No mesh";
+	}
 }
 
 
@@ -16,7 +23,7 @@ global proc GaussifierInit(string $args)
 	float $yCov = `floatSliderGrp -query -v ySlider`;
 	float $zCov = `floatSliderGrp -query -v zSlider`;
 	
-	GaussifierCmd -xCov $xCov -yCov $yCov -zCov $zCov -arg args;
+
 }
 
 
