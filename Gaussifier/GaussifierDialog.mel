@@ -1,0 +1,60 @@
+global string $gMainWindow;
+setParent $gMainWindow;
+menu -label "Gaussifier" -p $gMainWindow;
+menuItem -label "Gaussifier Command" -command ("createDialogWindow");
+
+
+global proc loadMesh()
+{
+	return;
+}
+
+
+global proc GaussifierInit(string $args) 
+{
+	float $xCov = `floatSliderGrp -query -v xSlider`;
+	float $yCov = `floatSliderGrp -query -v ySlider`;
+	float $zCov = `floatSliderGrp -query -v zSlider`;
+	
+	GaussifierCmd -x $xCov -y $yCov -z $zCov -arg args;
+}
+
+
+global proc createDialogWindow() 
+{
+	string $args = "";
+
+	string $dialogWindow = `window -title "Gaussifier" -widthHeight 500 500 -rtf true`;
+
+	frameLayout -label " ";
+
+	rowLayout -nc 2 -adjustableColumn 1;
+		text -label "Browse for input mesh files";
+		button -label "Browse" -w 120 -h 20 -command ("loadMesh()");
+	setParent ..;	
+	
+	button -label "Load selected Mesh" -w 120 -h 20 -command ("loadMesh()");
+
+	frameLayout -label "Selected covariance parameters" -collapsable true -collapse false;
+		columnLayout; 
+			floatSliderGrp -label "X" -field true -min 0.0 -max 1.0 xSlider;
+			floatSliderGrp -label "Y" -field true -min 0.0 -max 1.0 ySlider;
+			floatSliderGrp -label "Z" -field true -min 0.0 -max 1.0 zSlider;
+		setParent ..;
+	setParent ..;
+
+
+	string $buttonsForm = `formLayout -numberOfDivisions 100`;
+	string $createButton = `button -label "Generate" -w 100 -h 40 -command ("GaussifierInit($args)")`;
+	string $cancelButton = `button -label "Cancel" -w 100 -h 40 -command ("deleteUI -window " + $dialogWindow)`;
+
+	formLayout -edit
+		-attachForm $createButton "left" 50
+        -attachForm $cancelButton "right" 50
+	$buttonsForm;
+
+
+	showWindow;
+};
+
+
