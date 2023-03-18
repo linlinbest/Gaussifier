@@ -23,6 +23,7 @@ def MAKE_OUTPUT(attr):
 # Define the name of the node
 kPluginNodeTypeName = "gaussifierNode"
 
+
 # Give the node a unique ID. Make sure this ID is different from all of your other nodes!
 gaussifierNodeId = OpenMaya.MTypeId(0x8704)
 
@@ -142,8 +143,12 @@ def nodeCreator():
 
 # initialize the script plug-in
 def initializePlugin(mobject):
+    
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
+    sys.path.append('D:/Upenn/CGGT/CIS660/Gaussifier/Gaussifier')
+
     try:
+        mplugin.registerCommand("GaussifierCmd", nodeCreator)
         mplugin.registerNode( kPluginNodeTypeName, gaussifierNodeId, nodeCreator, nodeInitializer )
     except:
         sys.stderr.write( "Failed to register node: %s\n" % kPluginNodeTypeName )
