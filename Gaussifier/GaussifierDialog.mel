@@ -16,7 +16,7 @@ global proc GaussifierInit(string $args)
 	float $yCov = `floatSliderGrp -query -v ySlider`;
 	float $zCov = `floatSliderGrp -query -v zSlider`;
 	
-	GaussifierCmd -x $xCov -y $yCov -z $zCov -arg args;
+	GaussifierCmd -xCov $xCov -yCov $yCov -zCov $zCov -arg args;
 }
 
 
