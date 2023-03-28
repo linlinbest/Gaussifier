@@ -1,12 +1,16 @@
-# gaussifierNode.py
-
 import sys
-import random
+
+sys.path.append('<GaussifierPath>')
+sys.path.append('<C:/Users/AppData/Local/Programs/Python/Python39/Lib/site-packages>')
+
 
 import maya.OpenMaya as OpenMaya
-import maya.OpenMayaAnim as OpenMayaAnim
 import maya.OpenMayaMPx as OpenMayaMPx
 import maya.cmds as cmds
+
+import GaussifierDialog
+import GaussifierCmd
+
 
 # Useful functions for declaring attributes as inputs or outputs.
 def MAKE_INPUT(attr):
@@ -21,26 +25,17 @@ def MAKE_OUTPUT(attr):
     attr.setWritable(False)
 
 # Define the name of the node
-kPluginNodeTypeName = "gaussifierNode"
+kPluginNodeTypeName = "GaussifierNode"
+
 
 # Give the node a unique ID. Make sure this ID is different from all of your other nodes!
-gaussifierNodeId = OpenMaya.MTypeId(0x8704)
+GaussifierNodeId = OpenMaya.MTypeId(0x8724)
 
 # Node definition
-class gaussifierNode(OpenMayaMPx.MPxNode):
-    # Declare class variables:
-    # TODO:: declare the input and output class variables
-    #         i.e. inNumPoints = OpenMaya.MObject()
+class GaussifierNode(OpenMayaMPx.MPxNode):
+    numSubdivisions = OpenMaya.MObject()
 
-    inNumPoints = OpenMaya.MObject()
-
-    xCov = OpenMaya.MObject()
-    yCov = OpenMaya.MObject()
-    zCov = OpenMaya.MObject()
-
-
-    outPoints = OpenMaya.MObject()
-
+    outputMesh = OpenMaya.MObject()
 
     
     # constructor
@@ -49,46 +44,36 @@ class gaussifierNode(OpenMayaMPx.MPxNode):
 
     # compute
     def compute(self,plug,data):
-        # TODO:: create the main functionality of the node. Your node should 
-        #         take in three floats for max position (X,Y,Z), three floats 
-        #         for min position (X,Y,Z), and the number of random points to
-        #         be generated. Your node should output an MFnArrayAttrsData 
-        #         object containing the random points. Consult the homework
-        #         sheet for how to deal with creating the MFnArrayAttrsData. 
+        if plug == GaussifierNode.outputMesh:
 
-        if plug == gaussifierNode.outPoints:
+            numSubdivisionsData = data.inputValue(GaussifierNode.numSubdivisions)
+            numSubdivisionsValue = numSubdivisionsData.asInt()
 
-            inNumPointsData = data.inputValue(gaussifierNode.inNumPoints)
-            inNumPointsValue = inNumPointsData.asInt()
+            GaussifierCmd.generateMesh(numSubdivisionsValue)
+            gpsVertexData, gpsFaceData = GaussifierCmd.getGPSData()
 
-            xCovData = data.inputValue(gaussifierNode.xCov)
-            xCovValue = xCovData.asFloat()   
-            yCovData = data.inputValue(gaussifierNode.yCov)
-            yCovValue = yCovData.asFloat()
-            zCovData = data.inputValue(gaussifierNode.zCov)
-            zCovValue = zCovData.asFloat()
 
-            pointsData = data.outputValue(gaussifierNode.outPoints) 
-            pointsAAD = OpenMaya.MFnArrayAttrsData() 
-            pointsObject = pointsAAD.create()
+            outputMeshData = data.outputValue(GaussifierNode.outputMesh)
+            outputMeshAAD = OpenMaya.MFnMeshData()
+            outputMeshObject = outputMeshAAD.create()
 
-            # Create the vectors for "position" and "id". Names and types must match  
-            # the table above.
-            positionArray = pointsAAD.vectorArray("position")
-            idArray = pointsAAD.doubleArray("id")
 
-            # Loop to fill the arrays:
-            for index in range(0, inNumPointsValue):
-                pX = random.uniform(0, 1)
-                pY = random.uniform(0, 1)
-                pZ = random.uniform(0, 1)
+            faces = OpenMaya.MIntArray()
+            numVertPerFace = OpenMaya.MIntArray()
+            vertices = OpenMaya.MFloatPointArray()
+            for f in gpsFaceData:
+                numVertPerFace.append(3)
+                for fv in f:
+                    faces.append(int(fv))
+            
+            for v in gpsVertexData:
+                vertices.append(OpenMaya.MFloatPoint(v[0], v[1], v[2]))
 
-                positionArray.append(OpenMaya.MVector(pX, pY, pZ))
-                idArray.append(index)
 
-            # Finally set the output data handle pointsData.setMObject(pointsObject)
-            pointsData.setMObject(pointsObject)
+            meshFn = OpenMaya.MFnMesh()
+            meshFn.create(vertices.length(), numVertPerFace.length(), vertices, numVertPerFace, faces, outputMeshObject)
 
+            outputMeshData.setMObject(outputMeshObject)
 
 
         data.setClean(plug)
@@ -98,66 +83,49 @@ def nodeInitializer():
     tAttr = OpenMaya.MFnTypedAttribute()
     nAttr = OpenMaya.MFnNumericAttribute()
 
-    # TODO:: initialize the input and output attributes. Be sure to use the 
-    #         MAKE_INPUT and MAKE_OUTPUT functions.
-
-    gaussifierNode.inNumPoints = nAttr.create("numPoints", "np", OpenMaya.MFnNumericData.kInt, 10)
+    # initialize the input and output attributes. Be sure to use the MAKE_INPUT and MAKE_OUTPUT functions.
+    GaussifierNode.numSubdivisions = nAttr.create("numSubdivisions", "nDiv", OpenMaya.MFnNumericData.kInt, 1)
     MAKE_INPUT(nAttr)
 
-    gaussifierNode.xCov = nAttr.create("xCovariance", "xCov", OpenMaya.MFnNumericData.kFloat, 0.5)
-    MAKE_INPUT(nAttr)
-    gaussifierNode.yCov = nAttr.create("yCovariance", "yCov", OpenMaya.MFnNumericData.kFloat, 0.5)
-    MAKE_INPUT(nAttr)
-    gaussifierNode.zCov = nAttr.create("zCovariance", "zCov", OpenMaya.MFnNumericData.kFloat, 0.5)
-    MAKE_INPUT(nAttr)
-
-
-
-    gaussifierNode.outPoints = tAttr.create("outPoints", "op", OpenMaya.MFnArrayAttrsData.kDynArrayAttrs)
+    GaussifierNode.outputMesh = tAttr.create("outputMesh", "out", OpenMaya.MFnData.kMesh)
     MAKE_OUTPUT(tAttr)
 
-
     try:
-        # TODO:: add the attributes to the node and set up the
-        #         attributeAffects (addAttribute, and attributeAffects)
-        print("Initialization!\n")
+        # add the attributes to the node and set up the attributeAffects (addAttribute, and attributeAffects)
+        print("Node initialization!\n")
 
-        gaussifierNode.addAttribute(gaussifierNode.inNumPoints)
-        gaussifierNode.addAttribute(gaussifierNode.xCov)
-        gaussifierNode.addAttribute(gaussifierNode.yCov)
-        gaussifierNode.addAttribute(gaussifierNode.zCov)
-        gaussifierNode.addAttribute(gaussifierNode.outPoints)  
+        GaussifierNode.addAttribute(GaussifierNode.numSubdivisions)
+        GaussifierNode.addAttribute(GaussifierNode.outputMesh)
 
-        gaussifierNode.attributeAffects(gaussifierNode.inNumPoints, gaussifierNode.outPoints)
-        gaussifierNode.attributeAffects(gaussifierNode.xCov, gaussifierNode.outPoints)
-        gaussifierNode.attributeAffects(gaussifierNode.yCov, gaussifierNode.outPoints)
-        gaussifierNode.attributeAffects(gaussifierNode.zCov, gaussifierNode.outPoints)
+        GaussifierNode.attributeAffects(GaussifierNode.numSubdivisions, GaussifierNode.outputMesh)
 
     except:
         sys.stderr.write( ("Failed to create attributes of %s node\n", kPluginNodeTypeName) )
 
+
 # creator
 def nodeCreator():
-    return OpenMayaMPx.asMPxPtr( gaussifierNode() )
+    return OpenMayaMPx.asMPxPtr( GaussifierNode() )
+
 
 # initialize the script plug-in
 def initializePlugin(mobject):
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
-    try:
-        mplugin.registerNode( kPluginNodeTypeName, gaussifierNodeId, nodeCreator, nodeInitializer )
-    except:
-        sys.stderr.write( "Failed to register node: %s\n" % kPluginNodeTypeName )
+    mplugin.setName("Gaussifier")
 
-    melPath = mplugin.loadPath() + "/GaussifierDialog.mel"
-    melFile = open(melPath, "r")
-    melCmds = melFile.read().replace("\n", "")
-    OpenMaya.MGlobal.executeCommand(melCmds)
+    try:
+        # mplugin.registerCommand("GaussifierCmd", nodeCreator)
+        mplugin.registerNode( kPluginNodeTypeName, GaussifierNodeId, nodeCreator, nodeInitializer )
+    except:
+        sys.stderr.write( "Failed to register node: %s/n" % kPluginNodeTypeName )    
+
+    GaussifierDialog.createMenu()
     
 
 # uninitialize the script plug-in
 def uninitializePlugin(mobject):
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
     try:
-        mplugin.deregisterNode( gaussifierNodeId )
+        mplugin.deregisterNode( GaussifierNodeId )
     except:
         sys.stderr.write( "Failed to unregister node: %s\n" % kPluginNodeTypeName )
