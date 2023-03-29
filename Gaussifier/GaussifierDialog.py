@@ -19,6 +19,13 @@ def createNode():
     cmds.connectAttr(gaussifierNode + ".outputMesh", meshNode + ".inMesh")
 
 
+    orignalTransformNode = cmds.createNode("transform", name="ControlMesh")
+    controlMeshNode = cmds.createNode("mesh", name="ControlMeshShape1", parent=orignalTransformNode)
+    cmds.sets(controlMeshNode, add="initialShadingGroup")
+    cmds.connectAttr(gaussifierNode + ".controlMesh", controlMeshNode + ".inMesh")
+    cmds.connectAttr(transformNode + ".translate", orignalTransformNode + ".translate")
+    cmds.connectAttr(transformNode + ".rotate", orignalTransformNode + ".rotate")
+   
 def loadMesh(melArg):
     objects = cmds.ls(selection=True)
     if objects:

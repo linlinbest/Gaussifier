@@ -13,6 +13,12 @@ def getGPSData():
     return gpsVertexData, gpsFaceData
 
 
+def getData():
+    global vertexData
+    global faceData
+    return vertexData, faceData
+
+
 def loadMesh(mesh):
     global vertexData
     global faceData
@@ -104,3 +110,20 @@ def generateMesh(numSubdivisions):
                 [qq1[i,2], qq2[i,1], qq2[i,2]]]
         gpsVertexData[i] = np.linalg.inv(invCov) @ ql
    
+def createFnMesh(faceData, verticesData, outputMeshObject):
+    faces = OpenMaya.MIntArray()
+    numVertPerFace = OpenMaya.MIntArray()
+    vertices = OpenMaya.MFloatPointArray()
+    for f in faceData:
+        numVertPerFace.append(3)
+        for fv in f:
+            faces.append(int(fv))
+    
+    for v in verticesData:
+        vertices.append(OpenMaya.MFloatPoint(v[0], v[1], v[2]))
+
+
+    meshFn = OpenMaya.MFnMesh()
+    meshFn.create(vertices.length(), numVertPerFace.length(), vertices, numVertPerFace, faces, outputMeshObject)
+    
+    return outputMeshObject
