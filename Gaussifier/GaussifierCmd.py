@@ -18,6 +18,17 @@ def getData():
     global faceData
     return vertexData, faceData
 
+def setCovarianceAt(i, covStr):
+    global invCovs
+    covStr = covStr.replace('\n', '').replace('[', '').replace(']', '')
+    cov = np.fromstring(covStr, sep=' ', dtype= float)
+    cov = cov.reshape((3, 3))
+    invCovs[i] =np.linalg.inv(cov) 
+
+
+def getCovarianceAt(i):
+    global invCovs
+    return np.linalg.inv(invCovs[i])
 
 def loadMesh(mesh):
     global vertexData
@@ -37,7 +48,7 @@ def loadMesh(mesh):
         vertexData[i] = np.array([v[0], v[1], v[2]])
 
     for i in range(numFaces):
-        f = faceToVertex[i];
+        f = faceToVertex[i]
         indicesStr = re.findall(r'\d+', f)
         indices = [int(i) for i in indicesStr]
         faceData[i] = np.array([indices[1], indices[2], indices[3]])

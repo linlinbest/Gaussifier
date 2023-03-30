@@ -1,7 +1,10 @@
 import maya.cmds as cmds
 import GaussifierCmd
+import numpy as np
 
 from functools import partial
+
+
 
 
 def createMenu():
@@ -22,6 +25,7 @@ def createNode():
     orignalTransformNode = cmds.createNode("transform", name="ControlMesh")
     controlMeshNode = cmds.createNode("mesh", name="ControlMeshShape1", parent=orignalTransformNode)
     cmds.sets(controlMeshNode, add="initialShadingGroup")
+    cmds.scale(2, 2, 2, orignalTransformNode)
     cmds.connectAttr(gaussifierNode + ".controlMesh", controlMeshNode + ".inMesh")
     cmds.connectAttr(transformNode + ".translate", orignalTransformNode + ".translate")
     cmds.connectAttr(transformNode + ".rotate", orignalTransformNode + ".rotate")
@@ -38,6 +42,15 @@ def loadMesh(melArg):
 def generateMesh(melArg):
     createNode()
 
+def setCovariance(scrollField):
+    global vertIndex
+    covStr = cmds.scrollField(scrollField, q=True, text=True)
+    print(covStr)
+    GaussifierCmd.setCovarianceAt(vertIndex, covStr)
+    GaussifierCmd.generateMesh(1)
+    cmds.setAttr("GaussifierNode1.numSubdivisions", 1)
+
+
 
 def createDialogWindow(melArg):
     dialogWindow = cmds.window(title="Gaussifier", widthHeight=(500, 500), rtf=True)
@@ -49,9 +62,14 @@ def createDialogWindow(melArg):
     cmds.setParent("..")
     cmds.button(label="Load selected Mesh", w=120, h=20, command=loadMesh)
     cmds.setParent("..")
-
+    
+    cmds.frameLayout(label="Selected vertex")
+    selectedVertexScrollField = cmds.scrollField(wordWrap=True, editable=True)
+    cmds.button(label="Update Mesh", w=120, h=20, command=lambda melArg: setCovariance(selectedVertexScrollField))
+    cmds.setParent("..")
+    
     cmds.frameLayout(label="Selected covariance parameters", collapsable=True, collapse=False)
-    cmds.columnLayout()
+    cmds.columnLayout() 
     cmds.floatSliderGrp("xSlider", label="X", field=True, min=0.0, max=1.0)
     cmds.floatSliderGrp("ySlider", label="Y", field=True, min=0.0, max=1.0)
     cmds.floatSliderGrp("zSlider", label="Z", field=True, min=0.0, max=1.0)
@@ -66,3 +84,30 @@ def createDialogWindow(melArg):
                     attachForm=[(generateButton, "left", 50), (cancelButton, "right", 50)])
     cmds.showWindow(dialogWindow)
 
+
+    cmds.scriptJob(event=["SelectionChanged", lambda: updateScrollfield(selectedVertexScrollField)])
+    
+
+def updateScrollfield(scrollField, *args):
+    selected_objects = cmds.ls(selection=True)
+    if selected_objects:
+        selectedVertex = selected_objects[0]
+        start = indexOf("[", selectedVertex)
+
+        if start == -1:
+            return 
+        global vertIndex
+        global covStr
+        end = indexOf("]", selectedVertex)
+        vertIndexStr = selectedVertex[start + 1:end]
+        vertIndex = int(vertIndexStr)
+        covStr = np.array2string(GaussifierCmd.getCovarianceAt(vertIndex), precision=3)
+        cmds.scrollField(scrollField, edit=True, text=covStr)
+    else:
+        cmds.scrollField(scrollField, edit=True, text="")
+
+def indexOf(val, vertexStr):
+    try:
+        return vertexStr.index(val)
+    except ValueError:
+        return -1 
