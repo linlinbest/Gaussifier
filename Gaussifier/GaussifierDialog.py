@@ -21,14 +21,17 @@ def createNode():
     gaussifierNode = cmds.createNode("GaussifierNode", name="GaussifierNode1")
     cmds.connectAttr(gaussifierNode + ".outputMesh", meshNode + ".inMesh")
 
+    global controlMeshNode
 
     orignalTransformNode = cmds.createNode("transform", name="ControlMesh")
     controlMeshNode = cmds.createNode("mesh", name="ControlMeshShape1", parent=orignalTransformNode)
     cmds.sets(controlMeshNode, add="initialShadingGroup")
-    cmds.scale(2, 2, 2, orignalTransformNode)
+    # cmds.scale(2, 2, 2, orignalTransformNode)
     cmds.connectAttr(gaussifierNode + ".controlMesh", controlMeshNode + ".inMesh")
-    cmds.connectAttr(transformNode + ".translate", orignalTransformNode + ".translate")
+    # cmds.connectAttr(transformNode + ".translate", orignalTransformNode + ".translate")
     cmds.connectAttr(transformNode + ".rotate", orignalTransformNode + ".rotate")
+    cmds.connectAttr(transformNode + ".scale", orignalTransformNode + ".scale")
+
    
 def loadMesh(melArg):
     objects = cmds.ls(selection=True)
@@ -41,12 +44,15 @@ def loadMesh(melArg):
 
 def generateMesh(melArg):
     createNode()
+    visualizeCovariances()
+
 
 def setCovariance(scrollField):
     global vertIndex
     covStr = cmds.scrollField(scrollField, q=True, text=True)
-    print(covStr)
+    print("covStr inSetCovariance: " + covStr)
     GaussifierCmd.setCovarianceAt(vertIndex, covStr)
+    print("Before Generate Mesh")
     GaussifierCmd.generateMesh(1)
     cmds.setAttr("GaussifierNode1.numSubdivisions", 1)
 
@@ -84,30 +90,84 @@ def createDialogWindow(melArg):
                     attachForm=[(generateButton, "left", 50), (cancelButton, "right", 50)])
     cmds.showWindow(dialogWindow)
 
-
     cmds.scriptJob(event=["SelectionChanged", lambda: updateScrollfield(selectedVertexScrollField)])
+
+
+def onScaleChanged(scrollField):
+    print("Selected Cov Scale Changed!") 
+    global covStr
+    global selectedCov
+    covStr = cmds.scrollField(scrollField, q=True, text=True)
+    covStr = covStr.replace('\n', '').replace('[', '').replace(']', '')
+    cov = np.fromstring(covStr, sep=' ', dtype= float)
+    cov = cov.reshape((3, 3))
+    selectedScale = cmds.getAttr(selectedCov + '.scale')
+    print("selected Scale: " + str(selectedScale[0][0]) + ", " + str(selectedScale[0][1]), ", " + str(selectedScale[0][2]))
+
+
+    #3D to 3x3 conversion
+    cov[0][0] =  cov[0][0] * selectedScale[0][0]
+    cov[1][1] =  cov[1][1] * selectedScale[0][1]
+    cov[2][2] =  cov[2][2] * selectedScale[0][2]
+
+    np.set_printoptions(formatter={'float': lambda x: "{:.3f}".format(x)})
+    covStr = np.array2string(cov)
+    print("covStr onScaleChanged: " + covStr)
+    cmds.scrollField(scrollField, edit=True, text=covStr)
     
 
+
+
 def updateScrollfield(scrollField, *args):
+    global nameToIndex
+    global selectedCov
+    print("Selection Changed")
     selected_objects = cmds.ls(selection=True)
     if selected_objects:
-        selectedVertex = selected_objects[0]
-        start = indexOf("[", selectedVertex)
+        selectedCov = selected_objects[0]
+        if not selectedCov.startswith("pCube"):
+            return
+        cmds.scriptJob(attributeChange=[selectedCov + '.scale', lambda: onScaleChanged(scrollField)])
+        #start = indexOf("[", selectedVertex)
 
-        if start == -1:
-            return 
+        #if start == -1:
+            #return 
         global vertIndex
         global covStr
-        end = indexOf("]", selectedVertex)
-        vertIndexStr = selectedVertex[start + 1:end]
-        vertIndex = int(vertIndexStr)
-        covStr = np.array2string(GaussifierCmd.getCovarianceAt(vertIndex), precision=3)
+        #end = indexOf("]", selectedVertex)
+        #vertIndexStr = selectedVertex[start + 1:end]
+        vertIndex = nameToIndex[selectedCov]
+        covStr = np.array2string(GaussifierCmd.getCovarianceAt(vertIndex), precision=4)
         cmds.scrollField(scrollField, edit=True, text=covStr)
     else:
         cmds.scrollField(scrollField, edit=True, text="")
+
+
 
 def indexOf(val, vertexStr):
     try:
         return vertexStr.index(val)
     except ValueError:
         return -1 
+    
+
+def visualizeCovariances():
+    global cubes
+    cubes = []
+    global nameToIndex
+    nameToIndex = {}
+    vertexData, _ = GaussifierCmd.getData()
+
+    for i in range(len(vertexData)):
+        v = vertexData[i]
+
+        cube = cmds.polyCube(width=0.1, height=0.1, depth=0.1)[0]
+        print(cube)
+        cmds.move(v[0], v[1], v[2], cube)
+        cmds.parent(cube, "ControlMesh")
+    
+        cubes.append(cube)
+        nameToIndex[cube] = i
+    
+
+    

@@ -1,7 +1,7 @@
 import sys
 
 #sys.path.append('<GaussifierPath>')
-#sys.path.append('<C:/Users/AppData/Local/Programs/Python/Python39/Lib/site-packages>')
+#sys.path.append('<c:/users/sntang/appdata/roaming/python/python39/site-packages>')
 
 
 sys.path.append('D:/Upenn/CGGT/CIS660/Gaussifier/Gaussifier')

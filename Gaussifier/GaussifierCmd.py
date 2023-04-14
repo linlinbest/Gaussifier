@@ -21,6 +21,7 @@ def getData():
 def setCovarianceAt(i, covStr):
     global invCovs
     covStr = covStr.replace('\n', '').replace('[', '').replace(']', '')
+    print("covStr in setCovarianceAt" + covStr)
     cov = np.fromstring(covStr, sep=' ', dtype= float)
     cov = cov.reshape((3, 3))
     invCovs[i] =np.linalg.inv(cov) 
