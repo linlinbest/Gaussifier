@@ -4,6 +4,7 @@ import maya.cmds as cmds
 import igl
 import numpy as np
 import re
+import copy
 
 
 def getGPSData():
@@ -18,6 +19,10 @@ def getData():
     global faceData
     return vertexData, faceData
 
+def getInvCovs():
+    global invCovs
+    return invCovs
+
 def setCovarianceAt(i, covStr):
     global invCovs
     covStr = covStr.replace('\n', '').replace('[', '').replace(']', '')
@@ -30,6 +35,11 @@ def setCovarianceAt(i, covStr):
 def getCovarianceAt(i):
     global invCovs
     return np.linalg.inv(invCovs[i])
+
+def getInitCovarianceAt(i):
+    global initInvCovs
+    return np.linalg.inv(initInvCovs[i])
+
 
 def loadMesh(mesh):
     global vertexData
@@ -56,13 +66,29 @@ def loadMesh(mesh):
 
     print("Selected mesh is successfully loaded.")
 
-    generateInvCov()
+    generateIndentityCov()
+    # generateInvCov()
+
+
+
+def generateIndentityCov():
+    global vertexData
+    global invCovs
+    global initInvCovs
+
+    # creating covariance matrices with diagonal values as 0.01
+    identityMat = np.identity(3) * 100.0
+    invCovs = np.tile(identityMat, (len(vertexData), 1, 1))
+
+    # invCovs = np.zeros((len(vertexData), 3, 3))
+    initInvCovs = copy.deepcopy(invCovs)
 
 
 def generateInvCov():
     global vertexData
     global faceData
     global invCovs
+    global initInvCovs
 
     invCovs = np.zeros((len(vertexData), 3, 3))
 
@@ -84,6 +110,7 @@ def generateInvCov():
         for fv in f:
             invCovs[fv] += np.linalg.inv(cov)
 
+    initInvCovs = copy.deepcopy(invCovs)
     print("Covariances are successfully generated.")
 
 

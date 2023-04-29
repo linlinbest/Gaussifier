@@ -4,8 +4,8 @@ import sys
 #sys.path.append('<c:/users/sntang/appdata/roaming/python/python39/site-packages>')
 
 
-sys.path.append('D:/Upenn/CGGT/CIS660/Gaussifier/Gaussifier')
-sys.path.append('c:/users/admin/appdata/local/programs/python/python39/lib/site-packages')
+sys.path.append('D:/upenn/CIS6600/authoringTool/GaussifierFinal/Gaussifier')
+sys.path.append('C:/Users/Lin Zhuohao/AppData/Local/Programs/Python/Python39/Lib/site-packages')
 
 import maya.OpenMaya as OpenMaya
 import maya.OpenMayaMPx as OpenMayaMPx
@@ -51,6 +51,8 @@ class GaussifierNode(OpenMayaMPx.MPxNode):
 
             numSubdivisionsData = data.inputValue(GaussifierNode.numSubdivisions)
             numSubdivisionsValue = numSubdivisionsData.asInt()
+
+            GaussifierDialog.setCurrNumSubdiv(numSubdivisionsValue)
 
             GaussifierCmd.generateMesh(numSubdivisionsValue)
             gpsVertexData, gpsFaceData = GaussifierCmd.getGPSData()
