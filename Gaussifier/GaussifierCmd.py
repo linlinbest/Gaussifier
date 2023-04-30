@@ -23,6 +23,13 @@ def getInvCovs():
     global invCovs
     return invCovs
 
+def setInitInvCovs(invCovsArg):
+    global invCovs
+    global initInvCovs
+    invCovs = invCovsArg
+    initInvCovs = copy.deepcopy(invCovs)
+
+
 def setCovarianceAt(i, covStr):
     global invCovs
     covStr = covStr.replace('\n', '').replace('[', '').replace(']', '')

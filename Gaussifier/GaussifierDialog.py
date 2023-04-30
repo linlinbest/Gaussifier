@@ -70,25 +70,64 @@ def setCovariance(scrollField):
     # GaussifierCmd.generateMesh(GaussifierNode.getCurrNumSubdiv())
     cmds.setAttr("GaussifierNode1.numSubdivisions", getCurrNumSubdiv())
 
+def saveCovToFile(melArg):
+    invCovs = GaussifierCmd.getInvCovs()
+    flattenedCov = invCovs.reshape((invCovs.shape[0], -1))
+    savePath = cmds.fileDialog2(fileMode = 0, caption = 'Save Covariance', 
+                                okCaption = 'Save', startingDirectory = 
+                                'D:/Upenn/CGGT/CIS660/Gaussifier/Gaussifier',
+                                fileFilter = 'Text Files (*.txt)')
+    if savePath is not None:
+        np.savetxt(savePath[0], flattenedCov, delimiter=',')
+        # print(invCovs)
+
+def readCovFromFile(melArg):
+    
+    covPath = cmds.fileDialog2(fileMode=1, caption="Open File", fileFilter="Text Files (*.txt)")
+    
+    if covPath is not None:
+        flattenedCov = np.loadtxt(covPath[0], delimiter=',')
+
+        # global invCovs
+        # global initInvCovs
+        invCovs = flattenedCov.reshape((flattenedCov.shape[0], 3, 3))
+        # initInvCovs = copy.deepcopy(invCovs)
+        GaussifierCmd.setInitInvCovs(invCovs)
+
+        # global cubes
+        for cube in cubes:
+            cmds.delete(cube)
+        visualizeCovariances()
+
+        # print(invCovs)
+
 
 
 def createDialogWindow(melArg):
     dialogWindow = cmds.window(title="Gaussifier", widthHeight=(500, 500), rtf=True)
 
     cmds.frameLayout(label=" ")
-    # cmds.rowLayout(nc=2, adjustableColumn=1)
-    # cmds.text(label="Browse for input mesh files")
-    # cmds.button(label="Browse", w=120, h=20, command=loadMesh)
-    # cmds.setParent("..")
+    
+    
     cmds.button(label="Load selected Mesh", w=120, h=20, command=loadMesh)
     cmds.button(label="Generate covariances", w=120, h=20, command=generateCovariances)
     cmds.setParent("..")
     
     cmds.frameLayout(label="Selected vertex")
     selectedVertexScrollField = cmds.scrollField(wordWrap=True, editable=True)
+
     cmds.button(label="Update Mesh", w=120, h=20, command=lambda melArg: setCovariance(selectedVertexScrollField))
-    cmds.button(label="Enable covariance visualization", w=120, h=20, command=enableCovVisualization)
-    cmds.button(label="Disable covariance visualization", w=120, h=20, command=disableCovVisualization)
+
+    cmds.rowLayout(nc=3, adjustableColumn=2)
+    cmds.button(label="Save Covariances", w=120, h=20, command=saveCovToFile)
+    cmds.text(label=" ")
+    cmds.button(label="Read Covariances", w=120, h=20, command=readCovFromFile)
+    cmds.setParent("..")
+
+    #cmds.button(label="Enable covariance visualization", w=120, h=20, command=enableCovVisualization)
+    #cmds.button(label="Disable covariance visualization", w=120, h=20, command=disableCovVisualization)
+    covCheckBox = cmds.checkBox(label='Enable covariance visualization')
+    cmds.checkBox(covCheckBox, value=True, edit=True, onCommand=enableCovVisualization, offCommand=disableCovVisualization)
     cmds.setParent("..")
     
     # cmds.frameLayout(label="Selected covariance parameters", collapsable=True, collapse=False)
@@ -122,13 +161,13 @@ def onScaleChanged(scrollField):
     selectedScale = cmds.getAttr(selectedCov + '.scale')
     # print("selected Scale: " + str(selectedScale[0][0]) + ", " + str(selectedScale[0][1]), ", " + str(selectedScale[0][2]))
 
-    scale = [1.0, 1.0, 1.0]
+    scale = selectedScale[0]
     # Let scaling have greater effect
-    for i in range(len(selectedScale[0])):
-        if abs(selectedScale[0][i]) > 1.0:
-            scale[i] = selectedScale[0][i] * 10.0
-        else:
-            scale[i] = selectedScale[0][i] / 10.0
+    # for i in range(len(selectedScale[0])):
+    #     if abs(selectedScale[0][i]) > 1.0:
+    #         scale[i] = selectedScale[0][i] * 10.0
+    #     else:
+    #         scale[i] = selectedScale[0][i] / 10.0
 
     #3D to 3x3 conversion
     cov[0][0] =  initCov[0][0] * scale[0]
