@@ -178,6 +178,10 @@ def onScaleChanged(scrollField):
     covStr = np.array2string(cov)
     # print("covStr onScaleChanged: " + covStr)
     cmds.scrollField(scrollField, edit=True, text=covStr)
+
+    # cov = GaussifierCmd.getCovarianceAt(vertIndex)
+    # global cubes
+    # cmds.setAttr(cubes[vertIndex] + ".scale", cov[0][0]*10.0, cov[1][1]*10.0, cov[2][2]*10.0)
     
 
 
@@ -195,14 +199,21 @@ def updateScrollfield(scrollField, *args):
 
         # select a covariance vertex
         if ".vtx[" in selectedCov:
-            start = indexOf("[", selectedCov)
+            pass
+            # start = indexOf("[", selectedCov)
 
-            if start == -1:
-                return 
+            # if start == -1:
+            #     return 
             
-            end = indexOf("]", selectedCov)
-            vertIndexStr = selectedCov[start + 1:end]
-            vertIndex = int(vertIndexStr)
+            # end = indexOf("]", selectedCov)
+            # vertIndexStr = selectedCov[start + 1:end]
+            # vertIndex = int(vertIndexStr)
+
+            # # change the size of cubes
+            # cov = GaussifierCmd.getCovarianceAt(vertIndex)
+            # global cubes
+            # cmds.setAttr(cubes[vertIndex] + ".scale", cov[0][0]*10.0, cov[1][1]*10.0, cov[2][2]*10.0)
+
 
         # select a covariance cube
         elif selectedCov.startswith("pCube"):
@@ -210,6 +221,7 @@ def updateScrollfield(scrollField, *args):
             vertIndex = nameToIndex[selectedCov]
         
         covStr = np.array2string(GaussifierCmd.getCovarianceAt(vertIndex), precision=4)
+        
         cmds.scrollField(scrollField, edit=True, text=covStr)
 
     else:
